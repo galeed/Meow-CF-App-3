@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Meow CF App - Fastfetch PWA & APK Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    /* VARIABLES POR DEFECTO: ARCH LINUX THEME */
+    :root {
+      --bg-color: #0d1117;
+      --card-bg: #161b22;
+      --border-color: #30363d;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent-primary: #1793d1;   /* Primary distro color */
+      --accent-secondary: #38bdf8;
+      --accent-success: #3fb950;
+      --accent-warning: #d29922;
+      --accent-danger: #f85149;
+      --accent-purple: #a371f7;
+      --code-bg: #090d13;
+      --radius: 6px;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* PALETAS DE DISTROS LINUX */
+    [data-theme="arch"] {
+      --accent-primary: #1793d1;
+      --accent-secondary: #38bdf8;
+    }
+    [data-theme="debian"] {
+      --accent-primary: #d70a53;
+      --accent-secondary: #ff4b82;
+    }
+    [data-theme="ubuntu"] {
+      --accent-primary: #e95420;
+      --accent-secondary: #f97316;
+    }
+    [data-theme="kali"] {
+      --accent-primary: #00f0ff;
+      --accent-secondary: #38bdf8;
+    }
+    [data-theme="fedora"] {
+      --accent-primary: #51a2da;
+      --accent-secondary: #60a5fa;
+    }
+    [data-theme="nixos"] {
+      --accent-primary: #7ebae4;
+      --accent-secondary: #a5f3fc;
+    }
+    [data-theme="void"] {
+      --accent-primary: #478061;
+      --accent-secondary: #4ade80;
+    }
+    [data-theme="endeavour"] {
+      --accent-primary: #7f3fbf;
+      --accent-secondary: #c084fc;
+    }
+    [data-theme="manjaro"] {
+      --accent-primary: #35bf5c;
+      --accent-secondary: #4ade80;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+      touch-action: pan-x pan-y;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-mono);
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* Header Estilo Terminal */
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--accent-primary);
+    }
+
+    .logo-badge {
+      color: var(--accent-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Theme Switcher Dropdown */
+    .theme-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 4px 8px;
+      border-radius: var(--radius);
+    }
+
+    .theme-selector select {
+      background: transparent;
+      color: var(--accent-primary);
+      border: none;
+      outline: none;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .tagline {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border: 1px dashed var(--border-color);
+      padding: 4px 8px;
+      border-radius: var(--radius);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 950px;
+      width: 94%;
+      margin: 1.5rem auto;
+      flex: 1;
+    }
+
+    /* Stepper TUI Style */
+    .stepper {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.2rem;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-bottom: 6px;
+    }
+
+    .stepper::-webkit-scrollbar {
+      height: 4px;
+    }
+    .stepper::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+    }
+
+    .step-pill {
+      flex: 0 0 auto;
+      min-width: 120px;
+      scroll-snap-align: start;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .step-pill.active {
+      color: var(--bg-color);
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .step-pill.completed {
+      color: var(--accent-success);
+      border-color: var(--accent-success);
+    }
+
+    /* Terminal Card Window */
+    .tui-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .tui-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.8rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .tui-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: var(--accent-danger); }
+    .dot-yellow { background: var(--accent-warning); }
+    .dot-green { background: var(--accent-success); }
+
+    .tui-path {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .step-panel {
+      display: none;
+      width: 100%;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-panel.active {
+      display: block;
+    }
+
+    h2.panel-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--accent-primary);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    p.panel-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* OS Select Grid */
+    .os-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .os-card {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .os-card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .os-card.selected {
+      border: 1px solid var(--accent-primary);
+      background: rgba(23, 147, 209, 0.08);
+    }
+
+    .os-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .os-title {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--accent-primary);
+    }
+
+    /* Forms TUI */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    input[type="text"], input[type="url"], select, textarea, input[type="number"] {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-color);
+      color: var(--text-main);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-primary);
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg fill='%2338bdf8' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 36px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      width: 100%;
+      height: 42px;
+      cursor: pointer;
+      background: var(--bg-color);
+      padding: 2px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      color: var(--text-main);
+    }
+
+    .checkbox-label input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-primary);
+    }
+
+    .help-text {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.8rem;
+      gap: 1rem;
+    }
+
+    .tui-btn {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      cursor: pointer;
+      background: var(--bg-color);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .tui-btn:hover:not(:disabled) {
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .tui-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: var(--bg-color);
+      border-color: var(--accent-primary);
+      font-weight: 800;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-secondary);
+      color: var(--bg-color);
+    }
+
+    .btn-success {
+      background: var(--accent-success);
+      color: #000;
+      border-color: var(--accent-success);
+      font-weight: 800;
+    }
+
+    /* Code Container & Tabs */
+    .tab-switcher {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .code-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .code-header {
+      background: var(--code-bg);
+      color: var(--accent-secondary);
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--text-main);
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+      overflow-x: auto;
+      max-height: 320px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    /* Zip Banner */
+    .zip-master-box {
+      background: rgba(63, 185, 80, 0.08);
+      border: 1px solid var(--accent-success);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Audit Box */
+    .audit-card {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .audit-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+    }
+
+    /* Modals TUI */
+    .help-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      overflow-y: auto;
+      padding: 1.5rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .help-modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-container {
+      max-width: 800px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .dict-section { margin-bottom: 1.5rem; }
+    .dict-section h3 {
+      color: var(--accent-primary);
+      font-size: 0.95rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .dict-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .dict-item {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 0.8rem;
+      border-radius: var(--radius);
+    }
+
+    .dict-item h4 {
+      color: var(--accent-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .dict-item p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      background: var(--card-bg);
+      margin-top: auto;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .btn-group {
+        flex-direction: column-reverse;
+      }
+      .tui-btn {
+        width: 100%;
+      }
+      .zip-master-box {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body data-theme="arch">
+
+  <header>
+    <div class="logo">
+      <span class="logo-badge">❯_</span>
+      <span>meow-cf-app</span>
+    </div>
+    
+    <div class="header-actions">
+      <!-- Selector de Distro/Tema al estilo astro-distro -->
+      <div class="theme-selector">
+        <span>distro:</span>
+        <select id="distroSelect" onchange="changeDistroTheme(this.value)">
+          <option value="arch">Arch Linux</option>
+          <option value="debian">Debian</option>
+          <option value="ubuntu">Ubuntu</option>
+          <option value="kali">Kali Linux</option>
+          <option value="fedora">Fedora</option>
+          <option value="nixos">NixOS</option>
+          <option value="void">Void Linux</option>
+          <option value="endeavour">EndeavourOS</option>
+          <option value="manjaro">Manjaro</option>
+        </select>
+      </div>
+
+      <div class="tagline">v1.3.0-tui</div>
+
+      <button class="tui-btn" onclick="toggleHelpModal(true)">
+        <span>[?]</span> Diccionario
+      </button>
+      <button class="tui-btn" onclick="toggleAboutModal(true)">
+        <span>[i]</span> Info
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stepper CLI style -->
+    <div class="stepper">
+      <div class="step-pill active" id="pill-step-1" onclick="nextStep(1)">01. OS Target</div>
+      <div class="step-pill" id="pill-step-2" onclick="nextStep(2)">02. Config</div>
+      <div class="step-pill" id="pill-step-3" onclick="nextStep(3)">03. Engine</div>
+      <div class="step-pill" id="pill-step-4" onclick="nextStep(4)">04. Features</div>
+      <div class="step-pill" id="pill-step-5" onclick="nextStep(5)">05. Audit</div>
+      <div class="step-pill" id="pill-step-6" onclick="nextStep(6)">06. Export</div>
+    </div>
+
+    <!-- Main Terminal Box -->
+    <div class="tui-card">
+      <div class="tui-header">
+        <div class="tui-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="tui-path" id="terminalPath">~ / pwa-builder / step-1</div>
+      </div>
+
+      <!-- Paso 1 -->
+      <div class="step-panel active" id="step-1">
+        <h2 class="panel-title"><span>$</span> select --target-os</h2>
+        <p class="panel-desc">Selecciona la arquitectura base para estructurar tus manifiestos y scripts.</p>
+
+        <div class="os-grid">
+          <div class="os-card selected" onclick="selectOS('android', this)">
+            <div class="os-icon">🤖</div>
+            <div class="os-title">Android (APK)</div>
+            <p class="help-text" style="margin-top:6px;">Capacitor CLI / Bubblewrap TWA / PWABuilder</p>
+          </div>
+          <div class="os-card" onclick="selectOS('ios', this)">
+            <div class="os-icon">🍎</div>
+            <div class="os-title">iOS (Offline)</div>
+            <p class="help-text" style="margin-top:6px;">Service Worker Standalone + Safari Meta Tags</p>
+          </div>
+          <div class="os-card" onclick="selectOS('universal', this)">
+            <div class="os-icon">🚀</div>
+            <div class="os-title">Universal</div>
+            <p class="help-text" style="margin-top:6px;">Manifest V3 + Cross-platform SW + Github CI</p>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <div></div>
+          <button class="tui-btn btn-primary" onclick="nextStep(2)">Siguiente ➔</button>
+        </div>
+      </div>
+
+      <!-- Paso 2 -->
+      <div class="step-panel" id="step-2">
+        <h2 class="panel-title"><span>$</span> edit --general-info</h2>
+        <p class="panel-desc">Suministra la identidad base del manifiesto de la aplicación web.</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="appName">App Name (`name`)</label>
+            <input type="text" id="appName" value="Mi Super App Web" placeholder="Ej. Meow Music Player">
+          </div>
+          <div class="form-group">
+            <label for="appShortName">Short Name (`short_name`)</label>
+            <input type="text" id="appShortName" value="MeowApp" placeholder="Ej. MeowApp">
+            <span class="help-text">Máximo 12 caracteres recomendados.</span>
+          </div>
+          <div class="form-group full-width">
+            <label for="appDesc">Description (`description`)</label>
+            <textarea id="appDesc" rows="2" placeholder="Descripción breve...">Una increíble app web lista para compilar a APK y guardar offline en iOS.</textarea>
+          </div>
+          <div class="form-group">
+            <label for="startUrl">Start URL (`start_url`)</label>
+            <input type="text" id="startUrl" value="./index.html" placeholder="./index.html">
+          </div>
+          <div class="form-group">
+            <label for="scopeUrl">Scope (`scope`)</label>
+            <input type="text" id="scopeUrl" value="./" placeholder="./">
+          </div>
+          <div class="form-group">
+            <label for="appVersion">Version (`version`)</label>
+            <input type="text" id="appVersion" value="1.0.0" placeholder="1.0.0">
+          </div>
+          <div class="form-group">
+            <label for="appLang">Language (`lang`)</label>
+            <select id="appLang">
+              <option value="es-ES">Español (es-ES)</option>
+              <option value="en-US">Inglés (en-US)</option>
+              <option value="pt-BR">Portugués (pt-BR)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="tui-btn" onclick="nextStep(1)">⬅ Atrás</button>
+          <button class="tui-btn btn-primary" onclick="nextStep(3)">Siguiente ➔</button>
+        </div>
+      </div>
+
+      <!-- Paso 3 -->
+      <div class="step-panel" id="step-3">
+        <h2 class="panel-title"><span>$</span> configure --engine-cache</h2>
+        <p class="panel-desc">Define la estrategia de Service Worker y el motor de compilación nativo.</p>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="buildEngine">⚡ Motor Compilación APK</label>
+            <select id="buildEngine">
+              <option value="capacitor">Capacitor CLI (Recomendado)</option>
+              <option value="bubblewrap">Bubblewrap CLI (TWA)</option>
+              <option value="pwabuilder">PWABuilder CLI</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="offlineStrategy">🍎 Estrategia Cache SW</label>
+            <select id="offlineStrategy">
+              <option value="cache-first">Cache First (Carga instantánea)</option>
+              <option value="network-first">Network First (Prioriza red)</option>
+              <option value="stale-while-revalidate">Stale-While-Revalidate</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="displayMode">Display Mode</label>
+            <select id="displayMode">
+              <option value="standalone">Standalone (Nativo)</option>
+              <option value="fullscreen">Fullscreen</option>
+              <option value="minimal-ui">Minimal-UI</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="orientation">Orientation</label>
+            <select id="orientation">
+              <option value="any">Any (Adaptable)</option>
+              <option value="portrait">Portrait (Vertical)</option>
+              <option value="landscape">Landscape (Horizontal)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="themeColor">Theme Color</label>
+            <input type="color" id="themeColor" value="#1793d1">
+          </div>
+          <div class="form-group">
+            <label for="bgColor">Background Color</label>
+            <input type="color" id="bgColor" value="#0d1117">
+          </div>
+          <div class="form-group full-width">
+            <label for="iconPath">Icon Path (PNG)</label>
+            <input type="text" id="iconPath" value="assets/icons/icon-512x512.png">
+          </div>
+          <div class="form-group full-width">
+            <label class="checkbox-label">
+              <input type="checkbox" id="clearCacheOnUpdate" checked>
+              <span>Auto-purgar cachés antiguas en actualización del SW</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="tui-btn" onclick="nextStep(2)">⬅ Atrás</button>
+          <button class="tui-btn btn-primary" onclick="nextStep(4)">Siguiente ➔</button>
+        </div>
+      </div>
+
+      <!-- Paso 4 -->
+      <div class="step-panel" id="step-4">
+        <h2 class="panel-title"><span>$</span> set --features</h2>
+        <p class="panel-desc">Ajustes avanzados de UX, Push Notifications y despliegue automatizado.</p>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label class="checkbox-label">
+              <input type="checkbox" id="showInstallPrompt" checked>
+              <span>Inyectar capturador de evento 'beforeinstallprompt' (Android Prompt)</span>
+            </label>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="checkbox-label">
+              <input type="checkbox" id="enablePush" onchange="toggleVapidSection()">
+              <span>Soporte Web Push Notifications en Service Worker</span>
+            </label>
+          </div>
+
+          <div id="vapidSection" class="form-group full-width" style="display:none; padding:10px; background:var(--bg-color); border:1px dashed var(--border-color); border-radius:var(--radius);">
+            <label for="vapidKey">VAPID Public Key</label>
+            <input type="text" id="vapidKey" placeholder="Ej. BEl62iUYgUivxIkv69yViEuiBIa...">
+          </div>
+
+          <div class="form-group full-width">
+            <label class="checkbox-label">
+              <input type="checkbox" id="generateGithubAction" checked>
+              <span>Generar Workflow CI/CD de GitHub Actions (`deploy-pwa.yml`)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="tui-btn" onclick="nextStep(3)">⬅ Atrás</button>
+          <button class="tui-btn btn-primary" onclick="nextStep(5)">Siguiente ➔</button>
+        </div>
+      </div>
+
+      <!-- Paso 5 -->
+      <div class="step-panel" id="step-5">
+        <h2 class="panel-title"><span>$</span> run --audit-seo</h2>
+        <p class="panel-desc">Auditoría previa y configuración de etiquetas Open Graph.</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="ogTitle">OG Title</label>
+            <input type="text" id="ogTitle" placeholder="Igual a App Name por defecto">
+          </div>
+          <div class="form-group">
+            <label for="ogImage">OG Image URL (1200x630)</label>
+            <input type="url" id="ogImage" value="https://midominio.com/assets/og-image.jpg">
+          </div>
+
+          <div class="form-group full-width">
+            <button class="tui-btn" onclick="runAudit()" style="width:100%; border-color:var(--accent-purple); color:var(--accent-purple);">
+              <span>[🔬]</span> Ejecutar Test PWA
+            </button>
+          </div>
+
+          <div class="form-group full-width" id="auditResults" style="display:none;">
+            <div class="audit-card">
+              <div style="font-weight:700; margin-bottom:8px; font-size:0.85rem;">Resultados de la verificación:</div>
+              <div id="auditList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="tui-btn" onclick="nextStep(4)">⬅ Atrás</button>
+          <button class="tui-btn btn-primary" onclick="generateFiles(); nextStep(6)">Generar Archivos ➔</button>
+        </div>
+      </div>
+
+      <!-- Paso 6 -->
+      <div class="step-panel" id="step-6">
+        <h2 class="panel-title"><span>$</span> export --output-zip</h2>
+        <p class="panel-desc">Inspecciona los archivos generados y descárgalos empaquetados.</p>
+
+        <div class="tab-switcher">
+          <button class="tui-btn" onclick="switchTab('manifest')">manifest.json</button>
+          <button class="tui-btn" onclick="switchTab('sw')">service-worker.js</button>
+          <button class="tui-btn" onclick="switchTab('html')">index.html (Metas)</button>
+          <button class="tui-btn" id="tabGithub" onclick="switchTab('github')" style="display:none;">GitHub Workflow</button>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span id="codeTitle">manifest.json</span>
+            <button class="tui-btn" style="padding: 2px 8px; font-size:0.7rem;" onclick="copyCode()">Copiar</button>
+          </div>
+          <pre id="codeBlock">// Genera los archivos en el paso anterior</pre>
+        </div>
+
+        <div class="zip-master-box">
+          <div>
+            <div style="font-weight: 800; color: var(--accent-success); font-size: 1rem;">✔ Build Completado</div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Listo para desplegar en tu hosting o servidor web.</p>
+          </div>
+          <button class="tui-btn btn-success" onclick="downloadZip()">
+            <span>[💾]</span> DESCARGAR MASTER ZIP
+          </button>
+        </div>
+
+        <div class="btn-group">
+          <button class="tui-btn" onclick="nextStep(5)">⬅ Modificar Parámetros</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    meow-cf-app terminal edition © 2026 • Fastfetch/TUI design
+  </footer>
+
+  <!-- MODAL DICCIONARIO -->
+  <div class="help-modal" id="helpModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div style="font-weight: 800; color: var(--accent-primary);">[?] Diccionario Técnico TUI</div>
+        <button class="tui-btn" onclick="toggleHelpModal(false)">✖ Cerrar</button>
+      </div>
+
+      <div class="dict-section">
+        <h3>1. OS Targets & Engines</h3>
+        <div class="dict-grid">
+          <div class="dict-item">
+            <h4>Android (APK)</h4>
+            <p>Empaquetado Web-to-App usando Capacitor o TWA de Google.</p>
+          </div>
+          <div class="dict-item">
+            <h4>iOS Offline</h4>
+            <p>Ajustes de Service Worker + Meta Tags `apple-mobile-web-app` para ejecucion en Safari Mobile.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: right;">
+        <button class="tui-btn btn-primary" onclick="toggleHelpModal(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL INFO -->
+  <div class="help-modal" id="aboutModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div style="font-weight: 800; color: var(--accent-primary);">[i] Acerca de Meow CF App</div>
+        <button class="tui-btn" onclick="toggleAboutModal(false)">✖ Cerrar</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+        Studio en versión TUI Fastfetch diseñado para estructuración de manifiestos PWA, scripts de Service Worker y flujos de automatización CI/CD.
+      </p>
+
+      <div style="text-align: right;">
+        <button class="tui-btn btn-primary" onclick="toggleAboutModal(false)">Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentOS = 'android';
+    let generatedFiles = {};
+
+    // === SISTEMA DE TEMAS DE DISTROS (Estilo astro-distro) ===
+    function changeDistroTheme(themeName) {
+      document.body.setAttribute('data-theme', themeName);
+      localStorage.setItem('meow_distro_theme', themeName);
+    }
+
+    // Cargar Tema Guardado al Iniciar
+    (function initTheme() {
+      const savedTheme = localStorage.getItem('meow_distro_theme') || 'arch';
+      document.body.setAttribute('data-theme', savedTheme);
+      const sel = document.getElementById('distroSelect');
+      if (sel) sel.value = savedTheme;
+    })();
+
+    // === NAVEGACIÓN Y STEPS ===
+    function selectOS(os, el) {
+      currentOS = os;
+      document.querySelectorAll('.os-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function nextStep(step) {
+      document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`step-${step}`).classList.add('active');
+
+      document.querySelectorAll('.step-pill').forEach((p, idx) => {
+        p.classList.remove('active', 'completed');
+        if (idx < step - 1) p.classList.add('completed');
+        if (idx === step - 1) p.classList.add('active');
+      });
+
+      document.getElementById('terminalPath').textContent = `~ / pwa-builder / step-${step}`;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleVapidSection() {
+      const isPush = document.getElementById('enablePush').checked;
+      document.getElementById('vapidSection').style.display = isPush ? 'block' : 'none';
+    }
+
+    function switchTab(tab) {
+      const titleEl = document.getElementById('codeTitle');
+      const block = document.getElementById('codeBlock');
+
+      let codeStr = "";
+      if (tab === 'manifest') {
+        titleEl.textContent = "manifest.json";
+        codeStr = generatedFiles.manifest;
+      } else if (tab === 'sw') {
+        titleEl.textContent = "service-worker.js";
+        codeStr = generatedFiles.sw;
+      } else if (tab === 'html') {
+        titleEl.textContent = "index.html (Inyecciones PWA)";
+        codeStr = generatedFiles.html;
+      } else if (tab === 'github') {
+        titleEl.textContent = ".github/workflows/deploy-pwa.yml";
+        codeStr = generatedFiles.github;
+      }
+
+      block.textContent = codeStr;
+    }
+
+    function toggleHelpModal(show) {
+      const modal = document.getElementById('helpModal');
+      if (show) modal.classList.add('active');
+      else modal.classList.remove('active');
+    }
+
+    function toggleAboutModal(show) {
+      const modal = document.getElementById('aboutModal');
+      if (show) modal.classList.add('active');
+      else modal.classList.remove('active');
+    }
+
+    async function copyCode() {
+      const code = document.getElementById('codeBlock').innerText;
+      try {
+        await navigator.clipboard.writeText(code);
+        alert("Código copiado al portapapeles ✅");
+      } catch (err) {
+        alert("Error al copiar.");
+      }
+    }
+
+    // === AUDITORÍA ===
+    function runAudit() {
+      const auditList = document.getElementById('auditList');
+      document.getElementById('auditResults').style.display = 'block';
+      auditList.innerHTML = '';
+
+      const checks = [
+        { name: "Short Name <= 12 chars", pass: document.getElementById('appShortName').value.length <= 12 },
+        { name: "Theme Color defined", pass: !!document.getElementById('themeColor').value },
+        { name: "Icon PNG format", pass: document.getElementById('iconPath').value.includes('.png') }
+      ];
+
+      checks.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'audit-item';
+        item.innerHTML = `<span>${c.name}</span> <span style="color:${c.pass ? 'var(--accent-success)' : 'var(--accent-danger)'}">${c.pass ? '[PASS]' : '[FAIL]'}</span>`;
+        auditList.appendChild(item);
+      });
+    }
+
+    // === GENERACIÓN DE CÓDIGO ===
+    function generateFiles() {
+      const name = document.getElementById('appName').value;
+      const shortName = document.getElementById('appShortName').value;
+      const desc = document.getElementById('appDesc').value;
+      const startUrl = document.getElementById('startUrl').value;
+      const scope = document.getElementById('scopeUrl').value;
+      const lang = document.getElementById('appLang').value;
+      const display = document.getElementById('displayMode').value;
+      const orientation = document.getElementById('orientation').value;
+      const themeCol = document.getElementById('themeColor').value;
+      const bgCol = document.getElementById('bgColor').value;
+      const iconPath = document.getElementById('iconPath').value;
+
+      const strategy = document.getElementById('offlineStrategy').value;
+      const clearCache = document.getElementById('clearCacheOnUpdate').checked;
+      const showInstall = document.getElementById('showInstallPrompt').checked;
+      const enablePush = document.getElementById('enablePush').checked;
+      const vapidKey = document.getElementById('vapidKey').value;
+      const genGithub = document.getElementById('generateGithubAction').checked;
+
+      // 1. MANIFEST
+      const manifestObj = {
+        name,
+        short_name: shortName,
+        description: desc,
+        start_url: startUrl,
+        scope,
+        display,
+        background_color: bgCol,
+        theme_color: themeCol,
+        orientation,
+        lang,
+        icons: [{
+          src: iconPath,
+          sizes: "192x192 512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }]
+      };
+
+      generatedFiles.manifest = JSON.stringify(manifestObj, null, 2);
+
+      // 2. SERVICE WORKER
+      let swCode = `// Service Worker - Terminal PWA Studio\n`;
+      swCode += `const CACHE_NAME = 'app-cache-v1-${Date.now()}';\n`;
+      swCode += `const ASSETS_TO_CACHE = ['${startUrl}', '${iconPath}'];\n\n`;
+
+      swCode += `self.addEventListener('install', (e) => {\n  self.skipWaiting();\n  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS_TO_CACHE)));\n});\n\n`;
+
+      if (clearCache) {
+        swCode += `self.addEventListener('activate', (e) => {\n  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))));\n  return self.clients.claim();\n});\n\n`;
+      }
+
+      if (strategy === 'cache-first') {
+        swCode += `self.addEventListener('fetch', (e) => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));\n`;
+      } else {
+        swCode += `self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));\n`;
+      }
+
+      generatedFiles.sw = swCode;
+
+      // 3. HTML METAS
+      let htmlCode = `<!-- Inyección <head> -->\n`;
+      htmlCode += `<meta name="theme-color" content="${themeCol}">\n`;
+      htmlCode += `<link rel="manifest" href="./manifest.json">\n`;
+      htmlCode += `<meta name="apple-mobile-web-app-capable" content="yes">\n`;
+      htmlCode += `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n`;
+      htmlCode += `<link rel="apple-touch-icon" href="${iconPath}">\n`;
+
+      generatedFiles.html = htmlCode;
+
+      // 4. GITHUB WORKFLOW
+      if (genGithub) {
+        document.getElementById('tabGithub').style.display = 'inline-flex';
+        generatedFiles.github = `name: Deploy PWA\non:\n  push:\n    branches: [ "main" ]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v3\n      - name: Deploy\n        run: echo "Deploying ${shortName}..."\n`;
+      } else {
+        document.getElementById('tabGithub').style.display = 'none';
+        generatedFiles.github = "";
+      }
+
+      switchTab('manifest');
+    }
+
+    // === DESCARGAR ZIP ===
+    function downloadZip() {
+      if (!generatedFiles.manifest) {
+        alert("Genera los archivos antes de descargar.");
+        return;
+      }
+
+      const zip = new JSZip();
+      zip.file("manifest.json", generatedFiles.manifest);
+      zip.file("service-worker.js", generatedFiles.sw);
+      zip.file("index-injections.html", generatedFiles.html);
+
+      if (generatedFiles.github) {
+        zip.file(".github/workflows/deploy-pwa.yml", generatedFiles.github);
+      }
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(content);
+        a.download = `meow-pwa-${currentOS}-tui.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+    }
+  </script>
+</body>
+
+</html>
