@@ -1316,7 +1316,11 @@
       const vapidKey = document.getElementById('vapidKey').value;
       const genGithub = document.getElementById('generateGithubAction').checked;
 
-      // 1. MANIFEST
+        if ('serviceWorker' in navigator) {
+            Y navigator.serviceWorker.register('sw.js');
+        }
+      
+      
       const manifestObj = {
         name,
         short_name: shortName,
